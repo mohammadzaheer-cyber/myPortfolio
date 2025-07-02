@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,8 +9,15 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Mail, Phone, MapPin, Github, Linkedin, Send, Download, MessageCircle } from "lucide-react"
 
+type FormData = {
+  name: string,
+  email: string,
+  subject: string,
+  message: string
+}
+
 export function Contact() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
     subject: "",
@@ -19,6 +25,7 @@ export function Contact() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState("")
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -30,6 +37,45 @@ export function Contact() {
       },
     },
   }
+
+  const sendContactForm = async (data: FormData) => {
+    console.log('Sending form data:', data);
+
+    try {
+      const response = await fetch('http://localhost:5050/api/email/send-contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userName: data.name, 
+          email: data.email,
+          subject: data.subject,
+          message: data.message
+        })
+      });
+
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('Response result:', result);
+
+      if (result.success) {
+        return { success: true, message: 'Message sent successfully!' };
+      } else {
+        throw new Error(result.message || 'Failed to send message');
+      }
+    } catch (error) {
+      console.error('Full error:', error);
+      throw error;
+    }
+  };
 
   const itemVariants = {
     hidden: { y: 50, opacity: 0 },
@@ -79,16 +125,24 @@ export function Contact() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError("")
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    setIsSubmitting(false)
-    setSubmitted(true)
-    setFormData({ name: "", email: "", subject: "", message: "" })
-
-    // Reset success message after 5 seconds
-    setTimeout(() => setSubmitted(false), 5000)
+    try {
+      const result = await sendContactForm(formData)
+      
+      if (result.success) {
+        setSubmitted(true)
+        setFormData({ name: "", email: "", subject: "", message: "" })
+        
+        // Reset success message after 5 seconds
+        setTimeout(() => setSubmitted(false), 5000)
+      }
+    } catch (error) {
+      console.error('Form submission error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to send message. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -96,6 +150,8 @@ export function Contact() {
       ...formData,
       [e.target.name]: e.target.value,
     })
+    // Clear error when user starts typing
+    if (error) setError("")
   }
 
   return (
@@ -225,6 +281,12 @@ export function Contact() {
                   </motion.div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                      <div className="p-3 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md">
+                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                      </div>
+                    )}
+                    
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
                         <label
