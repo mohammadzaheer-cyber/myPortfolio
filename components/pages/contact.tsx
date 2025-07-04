@@ -48,7 +48,7 @@ export function Contact() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userName: data.name, 
+          userName: data.name,
           email: data.email,
           subject: data.subject,
           message: data.message
@@ -56,11 +56,14 @@ export function Contact() {
       });
 
       console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Response error:', errorText);
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        const errorData = await response.json();
+        console.error('Response error:', errorData);
+
+        // Extract the specific error message from backend
+        const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -129,11 +132,11 @@ export function Contact() {
 
     try {
       const result = await sendContactForm(formData)
-      
+
       if (result.success) {
         setSubmitted(true)
         setFormData({ name: "", email: "", subject: "", message: "" })
-        
+
         // Reset success message after 5 seconds
         setTimeout(() => setSubmitted(false), 5000)
       }
@@ -282,11 +285,15 @@ export function Contact() {
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-4">
                     {error && (
-                      <div className="p-3 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md">
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-3 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md"
+                      >
                         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                      </div>
+                      </motion.div>
                     )}
-                    
+
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
                         <label
@@ -345,7 +352,7 @@ export function Contact() {
                         htmlFor="message"
                         className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                       >
-                        Message
+                        Message <span className="text-xs text-gray-500 dark:text-gray-400">(minimum 10 characters)</span>
                       </label>
                       <Textarea
                         id="message"
@@ -355,13 +362,17 @@ export function Contact() {
                         value={formData.message}
                         onChange={handleInputChange}
                         className="bg-white/50 dark:bg-gray-700/50"
+                        placeholder="Please write your message here (at least 10 characters)..."
                       />
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {formData.message.length}/10 characters minimum
+                      </div>
                     </div>
                     <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                       <Button
                         type="submit"
-                        disabled={isSubmitting}
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        disabled={isSubmitting || formData.message.length < 10}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isSubmitting ? (
                           <>
