@@ -42,7 +42,7 @@ export function Contact() {
     console.log('Sending form data:', data);
 
     try {
-      const response = await fetch('http://localhost:5050/api/email/send-contact', {
+      const response = await fetch('https://emailer-5nbd.vercel.app/api/email/send-contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
